@@ -1,8 +1,8 @@
 import { HttpStatus, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from '@prisma/client';
-import { ClientProxy,  RpcException } from '@nestjs/microservices';
-import { OrderPaginationDto,ChangeOrderStatusDto,CreateOrderDto } from './dto';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { OrderPaginationDto, ChangeOrderStatusDto, CreateOrderDto } from './dto';
 import { PRODUCT_SERVICE } from 'src/config';
 import { firstValueFrom } from 'rxjs';
 
@@ -18,7 +18,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   ) {
     super();
   }
-  
+
   private readonly logger = new Logger('OrdersService');
 
   async onModuleInit() {
@@ -26,23 +26,15 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     this.logger.log('Database connected');
   }
 
-  
+
   async create(createOrderDto: CreateOrderDto) {
+    
     try {
-      //1 Confirmar los ids de los productos
+      
       const productIds = createOrderDto.items.map((item) => item.productId);
       const products: any[] = await firstValueFrom(
         this.productsClient.send({ cmd: 'validate_products' }, productIds),
       );
-
-      if(!products || products.length === 0) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Products not found',
-        });
-      }
-
-      //2. Cálculos de los valores
       const totalAmount = createOrderDto.items.reduce((acc, orderItem) => {
         const price = products.find(
           (product) => product.id === orderItem.productId,
@@ -82,7 +74,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         },
       });
 
-      
+
 
       return {
         ...order,
@@ -106,23 +98,23 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       where: {
         status: orderPaginationDto.status
       }
-    });  
+    });
 
 
     return {
       meta: {
         total: totalPages,
         page,
-        lastPage: Math.ceil( totalPages / page )
+        lastPage: Math.ceil(totalPages / page)
       },
       data: await this.order.findMany({
-        skip: ( page - 1 ) * limit,
-        take: limit       
+        skip: (page - 1) * limit,
+        take: limit
       })
-     
+
     }
   }
-  
+
 
   async findOne(id: string) {
 
@@ -139,10 +131,10 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       },
     });
 
-    if ( !order ) {
-      throw new RpcException({ 
-        status: HttpStatus.NOT_FOUND, 
-        message: `Order with id ${ id } not found`
+    if (!order) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Order with id ${id} not found`
       });
     }
 
@@ -150,7 +142,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const products: any[] = await firstValueFrom(
       this.productsClient.send({ cmd: 'validate_products' }, productIds),
     );
-    if(!products || products.length === 0) {
+    if (!products || products.length === 0) {
       throw new RpcException({
         status: HttpStatus.BAD_REQUEST,
         message: 'Products not found',
@@ -166,7 +158,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       })),
     };
 
-    
+
 
   }
 
@@ -175,7 +167,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const { id, status } = changeOrderStatusDto;
 
     const order = await this.findOne(id);
-    if ( order.status === status ) {
+    if (order.status === status) {
       return order;
     }
 
@@ -187,10 +179,10 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
 
   }
 
- async validateProducts(ids: number[]) {
-     const products = await this.productsClient.send({ cmd: 'validate_products' }, ids).toPromise();
-     return products;
-   }
+  async validateProducts(ids: number[]) {
+    const products = await this.productsClient.send({ cmd: 'validate_products' }, ids).toPromise();
+    return products;
+  }
 
 
 
