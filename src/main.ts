@@ -22,6 +22,7 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
    }));
 
+
   await app.listen();
   logger.log(`ORDERS MICROSERVICE is running on: ${envs.PORT}`);
 }

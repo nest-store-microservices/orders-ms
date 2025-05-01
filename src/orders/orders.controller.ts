@@ -1,7 +1,7 @@
 import { Controller, Inject, ParseUUIDPipe } from '@nestjs/common';
-import { ClientProxy, MessagePattern, Payload } from '@nestjs/microservices';
+import { ClientProxy, EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, OrderPaginationDto,ChangeOrderStatusDto } from './dto';
+import { CreateOrderDto, OrderPaginationDto,ChangeOrderStatusDto, PaidOrderDto } from './dto';
 import { PRODUCT_SERVICE } from 'src/config';
 
 
@@ -11,9 +11,15 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @MessagePattern('createOrder')
-  create(@Payload() createOrderDto: CreateOrderDto) {
+  async create(@Payload() createOrderDto: CreateOrderDto) {
+    const order = await this.ordersService.create(createOrderDto);
     
-    return this.ordersService.create(createOrderDto);
+    const paymentSession = await this.ordersService.createPaymentSession(order);
+
+    return {
+      order,
+      paymentSession,
+    }
   }
 
   @MessagePattern('findAllOrders')
@@ -32,7 +38,12 @@ export class OrdersController {
 
   }
 
-  
+  @EventPattern('payment.succeeded')
+   paidOrder( @Payload() paidOrderDto: PaidOrderDto) {
+    
+    return this.ordersService.paidOrder(paidOrderDto);
+    
+  }
 
 
 
